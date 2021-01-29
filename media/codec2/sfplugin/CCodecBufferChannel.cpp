@@ -737,17 +737,15 @@ void CCodecBufferChannel::feedInputBufferIfAvailable() {
     // limit this WA to qc hw decoder only
     // if feedInputBufferIfAvailableInternal() successfully (has available input buffer),
     // mLastInputBufferAvailableTs would be updated. otherwise, not input buffer available
-    if (mNeedEmptyWork) {
-        std::regex pattern{"c2\\.qti\\..*\\.decoder.*"};
-        if (std::regex_match(mComponentName, pattern)) {
-            std::lock_guard<std::mutex> tsLock(mTsLock);
-            uint64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(
-                    PipelineWatcher::Clock::now().time_since_epoch()).count();
-            if (now - mLastInputBufferAvailableTs > kPipelinePausedTimeoutMs) {
-                ALOGV("long time elapsed since last input available, let's queue a specific work to "
-                        "HAL to notify something");
-                queueDummyWork();
-            }
+    std::regex pattern{"c2\\.qti\\..*\\.decoder.*"};
+    if (std::regex_match(mComponentName, pattern)) {
+        std::lock_guard<std::mutex> tsLock(mTsLock);
+        uint64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(
+                PipelineWatcher::Clock::now().time_since_epoch()).count();
+        if (now - mLastInputBufferAvailableTs > kPipelinePausedTimeoutMs) {
+            ALOGV("long time elapsed since last input available, let's queue a specific work to "
+                    "HAL to notify something");
+            queueDummyWork();
         }
     }
 }
@@ -1613,7 +1611,7 @@ status_t CCodecBufferChannel::requestInitialInputBuffers(
         clientInputBuffers.erase(minIndex);
     }
 
-    if (mNeedEmptyWork && !clientInputBuffers.empty()) {
+    if (!clientInputBuffers.empty()) {
         {
             std::lock_guard<std::mutex> tsLock(mTsLock);
             mLastInputBufferAvailableTs = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -1787,7 +1785,7 @@ bool CCodecBufferChannel::handleWork(
 
     if (work->result == C2_OK){
         notifyClient = true;
-    } else if (mNeedEmptyWork && work->result == C2_OMITTED) {
+    } else if (work->result == C2_OMITTED) {
         ALOGV("[%s] empty work returned; omitted.", mName);
         return false; // omitted
     } else if (work->result == C2_NOT_FOUND) {
