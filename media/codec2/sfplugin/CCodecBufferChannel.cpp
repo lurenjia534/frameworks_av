@@ -156,13 +156,6 @@ CCodecBufferChannel::CCodecBufferChannel(
       mInputMetEos(false),
       mLastInputBufferAvailableTs(0u),
       mSendEncryptedInfoBuffer(false) {
-    char board_platform[PROPERTY_VALUE_MAX];
-    property_get("ro.board.platform", board_platform, "");
-    mNeedEmptyWork = false;
-    if (!strncmp(board_platform, "lahaina", 7)) {
-        mNeedEmptyWork = true;
-        ALOGV("CCodecBufferChannel: going to queue empty work for lahaina.");
-    }
     mOutputSurface.lock()->maxDequeueBuffers = kSmoothnessFactor + kRenderingDepth;
     {
         Mutexed<Input>::Locked input(mInput);
